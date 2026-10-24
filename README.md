@@ -1,5 +1,11 @@
 # Release Sync Skill
 
+<p align="center">
+  <img src="https://img.shields.io/badge/Skill-release--sync-0.1.1-3fb950?style=for-the-badge" alt="skill version" />
+  <a href="https://github.com/webkubor/release-sync-skill/releases"><img src="https://img.shields.io/github/v/release/webkubor/release-sync-skill?style=for-the-badge&color=6d7f9c&label=release" alt="release" /></a>
+  <a href="https://github.com/webkubor/release-sync-skill/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-777?style=for-the-badge" alt="MIT" /></a>
+</p>
+
 发版时自动同步「版本号 → 文档」：把 `package.json` 的版本写进**分类台账版本列**和**包内 `SKILL.md` 的 frontmatter version**，并校验一致性。解决最常见的老化：代码迭代了新版本，但台账 / SKILL 版本还停在旧版——`cs skill validate` 因此标红，agent 也分不清装的是不是最新。
 
 隶属 **CortexOS**（你的 CS 决策中心）的工具型 Skill，真源脚本与发布门禁套件同源：

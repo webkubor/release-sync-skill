@@ -2,6 +2,11 @@
 
 > **Release Sync — keep version numbers in sync everywhere, automatically, at publish time.**
 
+## Badges
+
+[![release](https://img.shields.io/github/v/release/webkubor/release-sync-skill?style=for-the-badge&color=6d7f9c)](https://github.com/webkubor/release-sync-skill/releases)
+[![MIT](https://img.shields.io/badge/license-MIT-777?style=for-the-badge)](LICENSE)
+
 ## What it does
 
 When you publish a new version of a Vite/Node package, the release gate (`version-sync-gate.mjs`)
