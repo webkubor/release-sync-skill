@@ -1,7 +1,7 @@
 ---
 name: release-sync
 description: "Vite/Node 包发版时的『版本号 → 文档』自动同步。发新版时把 package.json 的 version 自动写进分类台账（如 vite-plugins/README.md 版本列）和包内 SKILL.md 的 frontmatter version，并校验一致性，从根上消除『代码迭代了、文档/台账/SKILL 版本还停在旧版』的老化。触发条件: 准备 npm publish 发新版、打 v* tag、发版后发现台账或 SKILL 版本滞后、要审计哪些文档版本号落后时触发。触发词: 发版、发布、publish、版本同步、版本号同步、台账同步、SKILL version 同步、release-sync、version-sync。"
-version: 0.1.0
+version: 0.1.1
 license: MIT
 author: webkubor
 category: devops
@@ -40,13 +40,16 @@ node scripts/version-sync-gate.mjs
 
 # 只报告、不改写（首次接入 / 审计推荐）
 VERSION_SYNC_DRY_RUN=1 node scripts/version-sync-gate.mjs
+
+# 显式指定目标包目录（多仓批处理 / CI）
+node scripts/version-sync-gate.mjs /绝对/路径/到/包   # 或 相对路径
 ```
 
 ## 使用说明
 
 新增一个包要接入时，两步：
 
-1. 把 `scripts/version-sync-gate.mjs` 拷进包目录的 `scripts/`（真源在 `CortexOS/scripts/release-gate/`，用同步脚本下发）
+1. 把 `scripts/version-sync-gate.mjs` 拷进包目录的 `scripts/`（真源在 `CortexOS/scripts/release-gate/`，用同步脚本下发）；默认以脚本所在目录的上一级为包目录，也可传参数指向任意包目录
 2. 在 `package.json#scripts.prepublishOnly` 末尾接上：
 
 ```json

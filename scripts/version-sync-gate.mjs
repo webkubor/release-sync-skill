@@ -38,10 +38,14 @@ import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const GATE_VERSION = 3
+const GATE_VERSION = 4
 const NAME = 'version-sync-gate'
 const here = dirname(fileURLToPath(import.meta.url))
-const pkgRoot = dirname(here)
+// 目标包目录：可显式传参（多仓批处理/CI 用），默认取脚本所在目录的上一层（本脚本拷贝在 <pkg>/scripts/ 下）。
+const targetArg = process.argv[2]
+const pkgRoot = targetArg
+  ? (targetArg.startsWith('/') || targetArg.startsWith('~') ? targetArg : join(process.cwd(), targetArg))
+  : dirname(here)
 
 const errors = []
 const notes = []
@@ -88,36 +92,54 @@ if (existsSync(ledger)) {
     // 版本号不总是最后一行 token —— dsh 台账在第 4 列版本后面还有「谁在用」列。
     // 判据：找到「剔除非字符后与包名一致」的那个单元，把它后面第一个纯 semver 单元当作版本列改写。
     const cells = row.split('|').slice(1, -1).map(c => c.trim())
-    const strip = (s) => s.replace(/[`*_\[\]()#]/g, '').trim()
-    const stem = (s) => strip(s).replace(/\/$/, '')
+    // 查找包名单元：该单元格以 Markdown 链接或裸名开头，且**不含 `]`**（链接单元格里 `](` 后是相对路径，
+    // 若把整格剥到只剩屏显文本再判，会把 `](new/` 当成分隔 —— 所以这里只看单元格前缀是否命中包名）。
+    const pkgNameEsc = (pkg.name.match(/[^/]+\/?$/) ?? [fileName])[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const nameRe = new RegExp(`^(?:${fileName}\\b|${pkgNameEsc}\\b|\\[\\s*[\`]?(?:${fileName}|${pkgNameEsc}))`, 'i')
     let pkgCol = -1
     for (let i = 0; i < cells.length; i++) {
-      if (pkgNames.has(stem(cells[i]))) { pkgCol = i; break }
+      if (nameRe.test(cells[i])) { pkgCol = i; break }
     }
     if (pkgCol < 0) {
       errors.push(`台账行（第 ${idx + 1} 行）里没找到包名单元 ${pkg.name}: ${row}`)
     } else {
-      // 从包名后面找「纯 semver」单元格（版本列）。版本号后面可能还有其它列（如「谁在用」），
-      // 也可能嵌在备注里（`0.14.0 起`/`1.5.3` 这种）——它后面必然带文字，用纯净判据区分。
+// 从包名后面找「纯 semver」单元格（版本列）。版本号后面可能还有其它列（如「谁在用」），
+      // 也可能嵌在备注里（`0.14.0 起`/`1.5.3` 这种）——它必然带后续文字。
       let verCol = -1
       for (let i = pkgCol + 1; i < cells.length; i++) {
         const c = cells[i]
-        if (/^\d+\.\d+\.\d+$/.test(c)) { verCol = i; break }
-        // 形如 `0.14.0 起…` 或链接注记（非「版本列」）：后面跟文字/括号/加号 → 跳过
-        if (/^\d+\.\d+\.\d+/.test(c) && !c.includes('（') && !c.includes('(') && !c.includes('+')) { verCol = i; break }
+        // 剥掉反引号围栏后必须是纯 semver（`0.1.0` / 0.1.0 都认）；museav` 这类带尾注的忽略
+        const verMatch = c.match(/^`?(\d+\.\d+\.\d+)`?$/)
+        if (verMatch) { verCol = i; break }
+        if (/^\d+\.\d+\.\d+/.test(c)) {
+          // 带后续文字/括号 → 不是版本列
+          const rest = c.replace(/^\d+\.\d+\.\d+/, '').trim()
+          if (rest === '' || /^[-_!#?]/.test(rest)) { verCol = i; break }
+        }
       }
       if (verCol < 0) {
         errors.push(`台账行（第 ${idx + 1} 行）里找不到版本列（${pkg.name} 包名后没有纯 semver 单元）: ${row}`)
       } else {
         const oldV = cells[verCol]
-        const cellsOut = [...cells]
-        cellsOut[verCol] = version
-        const newRow = '| ' + cellsOut.join(' | ') + ' |'
+        // 按列改写而不是重组整行：cells 已经去了 trim 和围栏，重组会丢掉单元格内的反引号/链接。
+        // 逐步定位到目标单元格，只替换其内部版本号。
+        const segs = row.split('|')
+        let cellIdx = 0
+        for (let i = 1; i < segs.length - 1; i++) {
+          // 跳过边框（空）段；行为与 cells 的切分一一对应
+          if (i === 1 && segs[i].trim() === '') continue
+          if (cellIdx === verCol) {
+            segs[i] = segs[i].replace(/\d+\.\d+\.\d+/, version)
+            break
+          }
+          cellIdx++
+        }
+        const newRow = segs.join('|')
         if (row !== newRow) {
           notes.push(`台账行版本 ${oldV} → ${version}`)
           if (!DRY_RUN) { lines[idx] = newRow; writeFileSync(ledger, lines.join('\n'), 'utf8') }
           else notes.push(`（DRY_RUN：台账第 ${idx + 1} 行未落盘）`)
-        } else if (row === newRow) {
+        } else {
           notes.push(`台账行已是 ${version}，幂等无改动`)
         }
       }

@@ -13,6 +13,10 @@ node scripts/version-sync-gate.mjs
 
 # 只报告不改写（首次接入 / 审计）
 VERSION_SYNC_DRY_RUN=1 node scripts/version-sync-gate.mjs
+
+# 显式指定目标包目录（多仓批处理 / CI）
+node scripts/version-sync-gate.mjs /绝对/路径/到/包
+node scripts/version-sync-gate.mjs ./relative/pkg
 ```
 
 接入方式见 [SKILL.md](./SKILL.md)。
