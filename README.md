@@ -62,7 +62,27 @@
 
 ## Install 安装
 
-### 方式一：一键脚本（推荐）
+### 作为 Agent 技能接入
+
+```bash
+./install-skill.sh              # 装到本机已存在的各个 Agent 运行时目录
+./install-skill.sh --list       # 只看会装到哪，不改任何文件
+./install-skill.sh --copy       # 拷贝而非软链
+./install-skill.sh --uninstall  # 卸载
+```
+
+脚本用软链把本仓库挂进运行时目录，所以改源码即时生效。也可以用生态标准工具：
+
+```bash
+npx skills add webkubor/release-sync-skill
+```
+
+### 给 Node 包接发版门禁
+
+下面的 `install.sh` 做的是另一件事 —— 把版本同步门禁接进你的 Node 包，
+与上面的技能安装无关，两者入口不同。
+
+#### 方式一：一键脚本（推荐）
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/webkubor/release-sync-skill/main/install.sh | bash -s -- <你的包目录>
@@ -116,7 +136,8 @@ node scripts/version-sync-gate.mjs ./packages/b   # 可在发布循环里依次�
 | 组件 | 说明 |
 |---|---|
 | `SKILL.md` / `scripts/` | Skill 本体 + 同步脚本（真源在 CortexOS，一套改、全仓更新） |
-| `install.sh` | 一键接入（拷贝 + 接线 prepublishOnly） |
+| `install.sh` | 给 Node 包接发版门禁（拷贝 + 接线 prepublishOnly） |
+| `install-skill.sh` | 把本技能挂到本机各个 Agent 运行时目录 |
 | CHANGELOG / Release | 推 `v*` tag 自动建 Release，并校验 **tag == SKILL version** 强同步 |
 | 配套门禁 | `prepublish-gate`（产物/CHANGELOG 完整性）、`readme-gate`（README 首屏包装）——同为 CortexOS 发布门禁套件 |
 
